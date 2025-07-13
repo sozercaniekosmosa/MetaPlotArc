@@ -1,0 +1,607 @@
+<!DOCTYPE html><html lang="ru"><head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Универсальная структура JSON для описания сюжетной арки литературного произведения</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #64748b;
+            --accent: #d4a574;
+            --background: #fefefe;
+            --surface: #f8fafc;
+            --text: #0f172a;
+            --text-muted: #475569;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background: var(--background);
+            line-height: 1.7;
+        }
+        
+        .serif {
+            font-family: 'Crimson Text', serif;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, var(--primary) 0%, #334155 50%, var(--secondary) 100%);
+        }
+        
+        .toc-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--surface);
+            border-right: 1px solid #e2e8f0;
+            overflow-y: auto;
+            z-index: 1000;
+            padding: 2rem 1.5rem;
+        }
+        
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+        
+        .toc-link {
+            display: block;
+            padding: 0.5rem 0;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-left: 2px solid transparent;
+            padding-left: 1rem;
+            margin-left: -1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .toc-link:hover,
+        .toc-link.active {
+            color: var(--primary);
+            border-left-color: var(--accent);
+            background: rgba(212, 165, 116, 0.1);
+        }
+        
+        .toc-link.sub {
+            font-size: 0.875rem;
+            margin-left: 1rem;
+            padding-left: 0.5rem;
+        }
+        
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        
+        .hero-text {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            margin: 4rem 0;
+        }
+        
+        .json-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        
+        .json-key { color: #cbd5e1; }
+        .json-string { color: #a5b4fc; }
+        .json-number { color: #fbbf24; }
+        .json-boolean { color: #f87171; }
+        
+        .citation-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px dotted var(--accent);
+        }
+        
+        .citation-link:hover {
+            border-bottom-style: solid;
+        }
+        
+        .insight-highlight {
+            background: linear-gradient(120deg, rgba(212, 165, 116, 0.2) 0%, transparent 100%);
+            border-left: 4px solid var(--accent);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+        
+        @media (max-width: 1024px) {
+            .toc-fixed {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .toc-fixed.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .bento-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                overflow-x: hidden;
+            }
+            
+            .hero-gradient {
+                padding: 1.5rem;
+            }
+            
+            .hero-gradient h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero-gradient p {
+                font-size: 1rem;
+            }
+            
+            .main-content > section {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+    </style>
+  </head>
+
+  <body>
+    <!-- Mobile Menu Toggle -->
+    <button id="mobile-menu-toggle" class="fixed top-4 left-4 z-50 lg:hidden bg-white p-2 rounded-lg shadow-lg">
+      <i class="fas fa-bars text-xl"></i>
+    </button>
+
+    <!-- Table of Contents -->
+    <nav id="toc" class="toc-fixed">
+      <div class="mb-8">
+        <h3 class="serif text-lg font-semibold text-gray-900 mb-4">Содержание</h3>
+        <div class="space-y-1">
+          <a href="#hero" class="toc-link">Введение</a>
+          <a href="#metadata" class="toc-link">Метаданные произведения</a>
+          <a href="#metadata-title" class="toc-link sub">Название</a>
+          <a href="#metadata-author" class="toc-link sub">Автор</a>
+          <a href="#metadata-genre" class="toc-link sub">Жанры</a>
+          <a href="#metadata-themes" class="toc-link sub">Основные темы</a>
+          <a href="#setting" class="toc-link">Сеттинг</a>
+          <a href="#setting-time" class="toc-link sub">Время действия</a>
+          <a href="#setting-location" class="toc-link sub">Место действия</a>
+          <a href="#plot-arc" class="toc-link">Сюжетная арка</a>
+          <a href="#plot-exposition" class="toc-link sub">Экспозиция</a>
+          <a href="#plot-inciting" class="toc-link sub">Завязка</a>
+          <a href="#plot-rising" class="toc-link sub">Развитие действия</a>
+          <a href="#plot-climax" class="toc-link sub">Кульминация</a>
+          <a href="#plot-falling" class="toc-link sub">Спад действия</a>
+          <a href="#plot-resolution" class="toc-link sub">Разрешение</a>
+          <a href="#characters" class="toc-link">Персонажи</a>
+          <a href="#characters-protagonist" class="toc-link sub">Протагонист</a>
+          <a href="#characters-antagonist" class="toc-link sub">Антагонист</a>
+          <a href="#characters-supporting" class="toc-link sub">Второстепенные</a>
+          <a href="#conflict" class="toc-link">Конфликт</a>
+          <a href="#literary-devices" class="toc-link">Литературные приемы</a>
+          <a href="#point-of-view" class="toc-link">Точка зрения</a>
+          <a href="#example" class="toc-link">Пример структуры</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <!-- Hero Section -->
+      <section id="hero" class="hero-gradient text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10">
+          <img src="https://kimi-web-img.moonshot.cn/img/photoleviosa.com/f3086bad9170b26a669719a1330d950480fc2474.jpg" alt="Драматическое освещение на фоне книжных страниц" class="w-full h-full object-cover" size="wallpaper" aspect="wide" style="photo" query="книжные страницы драматическое освещение" referrerpolicy="no-referrer" data-modified="1" data-score="11594.00"/>
+        </div>
+        <div class="relative z-10 px-8 py-16">
+          <div class="bento-grid max-w-7xl mx-auto">
+            <div class="space-y-6">
+              <h1 class="serif text-5xl lg:text-6xl font-bold leading-tight">
+                <span class="italic">Универсальная структура</span>
+                <br/>
+                <span class="text-4xl lg:text-5xl">JSON для описания сюжетной арки</span>
+              </h1>
+              <p class="text-xl text-gray-200 max-w-2xl">
+                Систематизация ключевых элементов нарратива: метаданные, сеттинг, этапы сюжета, персонажи, конфликт и литературные приемы
+              </p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+              <h3 class="serif text-xl font-semibold mb-4">Ключевые аспекты</h3>
+              <ul class="space-y-2 text-gray-200">
+                <li class="flex items-center gap-3">
+                  <i class="fas fa-book text-accent"></i>
+                  <span>Гибкий и структурированный формат</span>
+                </li>
+                <li class="flex items-center gap-3">
+                  <i class="fas fa-chart-line text-accent"></i>
+                  <span>Анализ и представление сюжета</span>
+                </li>
+                <li class="flex items-center gap-3">
+                  <i class="fas fa-globe text-accent"></i>
+                  <span>Применимость для различных типов произведений</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Introduction -->
+      <section class="px-8 py-12 max-w-4xl mx-auto">
+        <div class="prose prose-lg max-w-none">
+          <p class="text-xl text-gray-700 leading-relaxed mb-8">
+            Универсальная структура JSON для описания сюжетной арки литературного произведения позволяет систематизировать ключевые элементы нарратива, такие как метаданные, сеттинг, этапы сюжета, персонажи, конфликт и литературные приемы. Она обеспечивает гибкий и структурированный формат для анализа и представления сюжета, пригодный для различных типов литературных произведений.
+          </p>
+        </div>
+      </section>
+
+      <!-- Metadata Section -->
+      <section id="metadata" class="px-8 py-12 max-w-4xl mx-auto">
+        <h2 class="serif text-4xl font-bold text-gray-900 mb-8">Метаданные произведения</h2>
+
+        <div id="metadata-title" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Название произведения</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Title</strong> в структуре JSON предназначено для хранения названия литературного произведения. Это обязательный элемент, так как название является основным идентификатором произведения. Например, в предоставленном примере JSON-структуры, название указано как &#34;Sample Literary Work&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+          <div class="insight-highlight">
+            <p class="font-medium text-gray-900 mb-2">Важность:</p>
+            <p class="text-gray-700">Обеспечение однозначной идентификации анализируемого текста, что особенно критично при создании баз данных литературных произведений или систем автоматизированного анализа сюжетов.</p>
+          </div>
+        </div>
+
+        <div id="metadata-author" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Автор произведения</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Author</strong> предназначено для указания имени автора или авторов литературного произведения. Как и название, это обязательное поле, обеспечивающее корректную атрибуцию произведения. В примере JSON-структуры автор указан как &#34;Author Name&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+
+        <div id="metadata-genre" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Жанр(ы) произведения</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Genre</strong> определяет жанровую принадлежность литературного произведения. В предоставленной JSON-структуре это поле представлено массивом строк, например: <code>[&#34;Fiction&#34;, &#34;Drama&#34;, &#34;Mystery&#34;]</code>
+            <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+
+        <div id="metadata-themes" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Основные темы произведения</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Main Themes</strong> используется для перечисления основных тем, затрагиваемых в литературном произведении. В примере JSON-структуры это поле также представлено массивом строк: <code>[&#34;Identity&#34;, &#34;Isolation&#34;, &#34;Courage&#34;, &#34;Redemption&#34;]</code>
+            <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-4xl mx-auto"></div>
+
+      <!-- Setting Section -->
+      <section id="setting" class="px-8 py-12 max-w-4xl mx-auto">
+        <h2 class="serif text-4xl font-bold text-gray-900 mb-8">Сеттинг</h2>
+
+        <div id="setting-time" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Время действия</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Time Period</strong> в JSON-структуре предназначено для описания времени, в котором происходит действие литературного произведения. Это может быть конкретный исторический период (например, &#34;Викторианская эпоха&#34;), относительное время (&#34;Ближайшее будущее&#34;) или точные даты.
+          </p>
+        </div>
+
+        <div id="setting-location" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Место действия</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Location</strong> в JSON-структуре предназначено для описания места, где происходит действие литературного произведения. Это поле может содержать как реальные географические названия, так и описания вымышленных мест.
+          </p>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-4xl mx-auto"></div>
+
+      <!-- Plot Arc Section -->
+      <section id="plot-arc" class="px-8 py-12 max-w-4xl mx-auto">
+        <h2 class="serif text-4xl font-bold text-gray-900 mb-8">Сюжетная арка</h2>
+
+        <div id="plot-exposition" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Экспозиция</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Exposition</strong> в разделе Plot Arc JSON-структуры предназначено для описания начальной части сюжета, где происходит знакомство с основными персонажами, обстановкой и предпосылками будущих событий. В примере указано: &#34;Introduces the protagonist struggling with a personal conflict, living in a repressive society&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+
+        <div id="plot-inciting" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Завязка / Начало действия</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Inciting Incident</strong> описывает событие или решение, которое нарушает исходное равновесие, установленное в экспозиции, и дает толчок основному действию сюжета. Это момент, когда главный герой сталкивается с проблемой или возможностью, которая меняет его обычную жизнь.
+          </p>
+        </div>
+
+        <div id="plot-rising" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Развитие действия / Нарастание конфликта</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Rising Action</strong> описывает этап сюжета, характеризующийся развитием конфликта, усложнением ситуации, появлением препятствий на пути героя к его цели. В примере указано: &#34;The protagonist meets a mysterious figure, leading to a series of events where they challenge societal norms&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+
+        <div id="plot-climax" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Кульминация</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Climax</strong> описывает наивысшую точку напряжения и поворотный момент в сюжете. В примере указано: &#34;The protagonist publicly defies the oppressive regime, facing severe consequences&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+
+        <div id="plot-falling" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Спад действия / Развязка</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Falling Action</strong> описывает события, следующие за кульминацией. В примере указано: &#34;Reveals the aftermath of the protagonist&#39;s actions, including societal reaction and personal sacrifice&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+
+        <div id="plot-resolution" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Финал / Разрешение</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Resolution</strong> описывает заключительную часть сюжета. В примере указано: &#34;The protagonist finds inner peace, and their actions inspire change in the community&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-4xl mx-auto"></div>
+
+      <!-- Characters Section -->
+      <section id="characters" class="px-8 py-12 max-w-4xl mx-auto">
+        <h2 class="serif text-4xl font-bold text-gray-900 mb-8">Персонажи</h2>
+
+        <div id="characters-protagonist" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Главный герой (Протагонист)</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Protagonist</strong> предназначено для описания главного героя или героев литературного произведения. В примере указано: &#34;A young woman seeking independence against societal constraints&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+
+        <div id="characters-antagonist" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Антагонист</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Antagonist</strong> описывает персонажа или силу, которая противостоит главному герою. В примере указано: &#34;The authoritarian leader of the town who enforces strict traditions&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+
+        <div id="characters-supporting" class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Второстепенные персонажи</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Supporting Characters</strong> предназначено для описания персонажей, которые не являются главными героями или основными антагонистами, но играют значимую роль. В примере указано: [&#34;A childhood friend providing emotional support.&#34;, &#34;A mentor figure offering guidance.&#34;] <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-4xl mx-auto"></div>
+
+      <!-- Conflict Section -->
+      <section id="conflict" class="px-8 py-12 max-w-4xl mx-auto">
+        <h2 class="serif text-4xl font-bold text-gray-900 mb-8">Конфликт</h2>
+
+        <div class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Тип конфликта (внутренний, внешний)</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Conflict Type</strong> предназначено для классификации основного противоречия, лежащего в основе сюжета. Основные типы конфликтов включают внутренний (Man vs. Self) и внешний (Man vs. Man, Man vs. Society, Man vs. Nature и др.).
+          </p>
+        </div>
+
+        <div class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Описание конфликта</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Conflict Description</strong> предназначено для более подробного описания основного конфликта. В примере JSON-структуры это отчасти отражено в части &#34;protagonist vs. societal norms&#34; <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-4xl mx-auto"></div>
+
+      <!-- Literary Devices Section -->
+      <section id="literary-devices" class="px-8 py-12 max-w-4xl mx-auto">
+        <h2 class="serif text-4xl font-bold text-gray-900 mb-8">Литературные приемы</h2>
+
+        <div class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Используемые литературные приемы</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Literary Devices</strong> предназначено для перечисления основных литературных приемов, которые автор использует в произведении. В примере указано: [&#34;Symbolism (use of weather to reflect mood).&#34;, &#34;Motifs (recurrent imagery of imprisonment and freedom).&#34;, &#34;Irony (situational irony in the protagonist&#39;s circumstances).&#34;] <a href="https://www.ibm.com/think/tutorials/zero-shot-classification" class="citation-link">[1]</a>.
+          </p>
+        </div>
+
+        <div class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Примеры использования</h3>
+          <p class="text-gray-700 mb-4">
+            Для более детального описания можно выделить <strong>Examples of Use</strong> в отдельное подполе, что позволит привести более развернутые иллюстрации того, как конкретный литературный прием функционирует в тексте.
+          </p>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-4xl mx-auto"></div>
+
+      <!-- Point of View Section -->
+      <section id="point-of-view" class="px-8 py-12 max-w-4xl mx-auto">
+        <h2 class="serif text-4xl font-bold text-gray-900 mb-8">Точка зрения (опционально)</h2>
+
+        <div class="mb-12">
+          <h3 class="serif text-2xl font-semibold text-gray-800 mb-4">Тип повествования</h3>
+          <p class="text-gray-700 mb-4">
+            Поле <strong>Narrative Point of View</strong> является опциональным и предназначено для указания типа повествования. Основные типы включают: от первого лица, от второго лица, от третьего лица (всеведущий, ограниченный, объективный).
+          </p>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-4xl mx-auto"></div>
+
+      <!-- Example Section -->
+      <section id="example" class="px-8 py-12 max-w-6xl mx-auto">
+        <h2 class="serif text-4xl font-bold text-gray-900 mb-8">Пример JSON-структуры</h2>
+
+        <div class="mb-8">
+          <p class="text-gray-700 text-lg mb-6">
+            Представленная JSON-структура разработана для универсального описания сюжетной арки литературных произведений различных жанров. Она является результатом анализа существующих подходов к описанию нарративов, включая <a href="https://github.com/narrative-first/universal-narrative-model" class="citation-link">Narrative Context Protocol (NCP)</a>
+            <a href="https://github.com/narrative-first/universal-narrative-model" class="citation-link">[182, 183]</a>, но ориентирована на универсальность и простоту применения.
+          </p>
+        </div>
+
+        <div class="json-block">
+          <pre>{
+  <span class="json-key">&#34;Title&#34;</span>: <span class="json-string">&#34;Sample Literary Work&#34;</span>,
+  <span class="json-key">&#34;Author&#34;</span>: <span class="json-string">&#34;Author Name&#34;</span>,
+  <span class="json-key">&#34;Genre&#34;</span>: [<span class="json-string">&#34;Fiction&#34;</span>, <span class="json-string">&#34;Drama&#34;</span>, <span class="json-string">&#34;Mystery&#34;</span>],
+  <span class="json-key">&#34;Main Themes&#34;</span>: [<span class="json-string">&#34;Identity&#34;</span>, <span class="json-string">&#34;Isolation&#34;</span>, <span class="json-string">&#34;Courage&#34;</span>, <span class="json-string">&#34;Redemption&#34;</span>],
+  <span class="json-key">&#34;Setting&#34;</span>: {
+    <span class="json-key">&#34;Time Period&#34;</span>: <span class="json-string">&#34;Early 20th century&#34;</span>,
+    <span class="json-key">&#34;Location&#34;</span>: <span class="json-string">&#34;A fictional town&#34;</span>
+  },
+  <span class="json-key">&#34;Plot Arc&#34;</span>: {
+    <span class="json-key">&#34;Exposition&#34;</span>: <span class="json-string">&#34;Introduces the protagonist struggling with a personal conflict, living in a repressive society.&#34;</span>,
+    <span class="json-key">&#34;Inciting Incident&#34;</span>: <span class="json-string">&#34;The protagonist receives a mysterious letter hinting at a family secret.&#34;</span>,
+    <span class="json-key">&#34;Rising Action&#34;</span>: <span class="json-string">&#34;The protagonist investigates the secret, leading to confrontations with societal norms and powerful figures.&#34;</span>,
+    <span class="json-key">&#34;Climax&#34;</span>: <span class="json-string">&#34;The protagonist publicly defies the oppressive regime, revealing the truth and facing severe consequences.&#34;</span>,
+    <span class="json-key">&#34;Falling Action&#34;</span>: <span class="json-string">&#34;Reveals the aftermath of the protagonist&#39;s actions, including societal reaction, personal sacrifice, and the regime&#39;s response.&#34;</span>,
+    <span class="json-key">&#34;Resolution&#34;</span>: <span class="json-string">&#34;The protagonist finds inner peace through their actions, and their courage inspires nascent change in the community.&#34;</span>
+  },
+  <span class="json-key">&#34;Characters&#34;</span>: {
+    <span class="json-key">&#34;Protagonist&#34;</span>: <span class="json-string">&#34;A young woman seeking independence and truth against societal constraints.&#34;</span>,
+    <span class="json-key">&#34;Antagonist&#34;</span>: <span class="json-string">&#34;The authoritarian leader of the town who enforces strict traditions and suppresses dissent.&#34;</span>,
+    <span class="json-key">&#34;Supporting Characters&#34;</span>: [
+      <span class="json-string">&#34;A childhood friend providing emotional support and loyalty.&#34;</span>,
+      <span class="json-string">&#34;A mentor figure offering guidance and historical context.&#34;</span>
+    ]
+  },
+  <span class="json-key">&#34;Conflict&#34;</span>: {
+    <span class="json-key">&#34;Type&#34;</span>: <span class="json-string">&#34;Internal and External&#34;</span>,
+    <span class="json-key">&#34;Description&#34;</span>: <span class="json-string">&#34;Man vs. Society (protagonist&#39;s quest for identity and truth vs. oppressive societal norms and authoritarian rule); Man vs. Self (protagonist&#39;s internal struggle with fear and doubt).&#34;</span>
+  },
+  <span class="json-key">&#34;Literary Devices&#34;</span>: [
+    <span class="json-string">&#34;Symbolism (e.g., recurring imagery of caged birds symbolizing the protagonist&#39;s desire for freedom).&#34;</span>,
+    <span class="json-string">&#34;Motifs (e.g., the contrast between light and darkness to represent knowledge and ignorance).&#34;</span>,
+    <span class="json-string">&#34;Irony (e.g., situational irony where the regime&#39;s attempts to silence the protagonist only amplify her message).&#34;</span>
+  ],
+  <span class="json-key">&#34;Narrative Point of View&#34;</span>: <span class="json-string">&#34;Third-person limited, primarily following the protagonist&#39;s perspective.&#34;</span>
+}</pre>
+        </div>
+
+        <div class="insight-highlight mt-8">
+          <p class="font-medium text-gray-900 mb-2">Ключевые преимущества структуры:</p>
+          <ul class="text-gray-700 space-y-2">
+            <li>• Гибкость и адаптируемость для различных типов произведений</li>
+            <li>• Систематизированный подход к анализу нарратива</li>
+            <li>• Возможность сравнительного анализа сюжетных арок</li>
+            <li>• Простота использования без глубокого погружения в нарративные теории</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="px-8 py-12 bg-gray-50 mt-16">
+        <div class="max-w-4xl mx-auto">
+          <div class="section-divider mb-8"></div>
+          <p class="text-gray-600 text-center">
+            Эта структура предоставляет гибкий инструмент для систематического анализа и описания сюжетных арок, позволяя исследователям, студентам и любителям литературы структурированно фиксировать свои наблюдения и интерпретации.
+          </p>
+        </div>
+      </footer>
+    </main>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
+            const toc = document.getElementById('toc');
+            toc.classList.toggle('mobile-open');
+        });
+
+        // Close menu when clicking outside in mobile view
+        document.addEventListener('click', function(event) {
+            const toc = document.getElementById('toc');
+            const mobileMenuButton = document.getElementById('mobile-menu-toggle');
+            const isClickInsideToc = toc.contains(event.target);
+            const isClickOnMenuButton = mobileMenuButton.contains(event.target);
+
+            if (!isClickInsideToc && !isClickOnMenuButton && window.innerWidth <= 1024) {
+                toc.classList.remove('mobile-open');
+            }
+        });
+
+        // Smooth scrolling for TOC links
+        document.querySelectorAll('.toc-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+                
+                // Close mobile menu after clicking a link
+                if (window.innerWidth <= 1024) {
+                    document.getElementById('toc').classList.remove('mobile-open');
+                }
+            });
+        });
+
+        // Active TOC link highlighting
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -80% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+                    document.querySelectorAll('.toc-link').forEach(link => {
+                        link.classList.remove('active');
+                    });
+                    const activeLink = document.querySelector(`[href="#${id}"]`);
+                    if (activeLink) {
+                        activeLink.classList.add('active');
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // Observe all sections
+        document.querySelectorAll('section[id]').forEach(section => {
+            observer.observe(section);
+        });
+
+        // Close menu when resizing to desktop view
+        window.addEventListener('resize', function() {
+            const toc = document.getElementById('toc');
+            if (window.innerWidth > 1024) {
+                toc.classList.remove('mobile-open');
+            }
+        });
+    </script>
+  
+
+</body></html>
